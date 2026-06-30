@@ -1,4 +1,8 @@
-export type MatchStatus = 'SCHEDULED' | 'LIVE' | 'IN_PLAY' | 'PAUSED' | 'FINISHED' | 'SUSPENDED' | 'POSTPONED' | 'CANCELLED' | 'TIMED';
+export type MatchStatus =
+  | 'SCHEDULED' | 'TIMED' | 'IN_PLAY' | 'PAUSED' | 'LIVE'
+  | 'FINISHED' | 'SUSPENDED' | 'POSTPONED' | 'CANCELLED';
+
+export type MatchDuration = 'REGULAR' | 'EXTRA_TIME' | 'PENALTY_SHOOTOUT';
 
 export type Stage =
   | 'GROUP_STAGE'
@@ -17,10 +21,19 @@ export interface Team {
   crest: string;
 }
 
+export interface ScoreDetail {
+  home: number | null;
+  away: number | null;
+}
+
 export interface Score {
   winner: 'HOME_TEAM' | 'AWAY_TEAM' | 'DRAW' | null;
-  fullTime: { home: number | null; away: number | null };
-  halfTime: { home: number | null; away: number | null };
+  duration: MatchDuration | null;
+  fullTime: ScoreDetail;
+  halfTime: ScoreDetail;
+  regularTime?: ScoreDetail;
+  extraTime?: ScoreDetail;
+  penalties?: ScoreDetail;
 }
 
 export interface Match {
@@ -33,6 +46,7 @@ export interface Match {
   awayTeam: Team;
   score: Score;
   venue?: string;
+  matchday?: number;
 }
 
 export interface StandingRow {

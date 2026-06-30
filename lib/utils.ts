@@ -1,23 +1,26 @@
-import type { Stage, MatchStatus } from './types';
+import type { Stage, MatchStatus, Score, ScoreDetail } from './types';
 
-// AEST = UTC+10 (Australia in winter during the World Cup - June/July)
+// ─── Timezone ────────────────────────────────────────────────────────────────
+// AEST = UTC+10 (Australia winter, June–July)
+
 export function toAEST(utcDate: string): Date {
   const d = new Date(utcDate);
-  // AEST offset: +10 hours
   return new Date(d.getTime() + 10 * 60 * 60 * 1000);
 }
 
 export function formatMatchTime(utcDate: string): string {
   const aest = toAEST(utcDate);
-  return aest.toLocaleString('en-AU', {
-    timeZone: 'UTC', // already converted
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  }) + ' AEST';
+  return (
+    aest.toLocaleString('en-AU', {
+      timeZone: 'UTC',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }) + ' AEST'
+  );
 }
 
 export function formatDate(utcDate: string): string {
@@ -39,6 +42,59 @@ export function formatTime(utcDate: string): string {
     hour12: true,
   });
 }
+
+// ─── Score display ────────────────────────────────────────────────────────────
+
+export interface DisplayScore {
+  home: number;
+  away: number;
+  /** e.g. "aet" or "4-2 pens" */
+  suffix: string | null;
+}
+
+export function getDisplayScore(score: Score): DisplayScore {
+  const dur = score.duration;
+
+  if (dur === 'PENALTY_SHOOTOUT') {
+    // Show the score going INTO penalties (after extra time or regular time)
+    // extraTime field holds goals scored only DURING extra time
+    // So total goals = fullTime + extraTime
+    const ftH = score.fullTime.home ?? 0;
+    const ftA = score.fullTime.away ?? 0;
+    const etH = score.extraTime?.home ?? 0;
+    const etA = score.extraTime?.away ?? 0;
+    const penH = score.penalties?.home ?? 0;
+    const penA = score.penalties?.away ?? 0;
+    // If regularTime field is available, use that + extraTime; otherwise fullTime is 90min
+    const reg = score.regularTime;
+    const baseH = reg ? (reg.home ?? 0) + etH : ftH + etH;
+    const baseA = reg ? (reg.away ?? 0) + etA : ftA + etA;
+    return {
+      home: baseH,
+      away: baseA,
+      suffix: `(${penH}–${penA} pens)`,
+    };
+  }
+
+  if (dur === 'EXTRA_TIME') {
+    const ftH = score.fullTime.home ?? 0;
+    const ftA = score.fullTime.away ?? 0;
+    const etH = score.extraTime?.home ?? 0;
+    const etA = score.extraTime?.away ?? 0;
+    const reg = score.regularTime;
+    const home = reg ? (reg.home ?? 0) + etH : ftH + etH;
+    const away = reg ? (reg.away ?? 0) + etA : ftA + etA;
+    return { home, away, suffix: 'aet' };
+  }
+
+  return {
+    home: score.fullTime.home ?? 0,
+    away: score.fullTime.away ?? 0,
+    suffix: null,
+  };
+}
+
+// ─── Stage metadata ───────────────────────────────────────────────────────────
 
 export function stageName(stage: Stage): string {
   const map: Record<Stage, string> = {
@@ -66,6 +122,8 @@ export function stageOrder(stage: Stage): number {
   return order[stage] ?? 99;
 }
 
+// ─── Status helpers ───────────────────────────────────────────────────────────
+
 export function isLive(status: MatchStatus): boolean {
   return status === 'IN_PLAY' || status === 'PAUSED' || status === 'LIVE';
 }
@@ -74,96 +132,58 @@ export function isFinished(status: MatchStatus): boolean {
   return status === 'FINISHED';
 }
 
-// Country name → flag emoji
-const flagMap: Record<string, string> = {
-  'United States': '🇺🇸',
-  'USA': '🇺🇸',
-  'Mexico': '🇲🇽',
-  'Canada': '🇨🇦',
-  'Argentina': '🇦🇷',
-  'Chile': '🇨🇱',
-  'Peru': '🇵🇪',
-  'Australia': '🇦🇺',
-  'Germany': '🇩🇪',
-  'Japan': '🇯🇵',
-  'Belgium': '🇧🇪',
-  'Costa Rica': '🇨🇷',
-  'Spain': '🇪🇸',
-  'Brazil': '🇧🇷',
-  'Serbia': '🇷🇸',
-  'Cameroon': '🇨🇲',
-  'France': '🇫🇷',
-  'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-  'Senegal': '🇸🇳',
-  'Ecuador': '🇪🇨',
-  'Portugal': '🇵🇹',
-  'Netherlands': '🇳🇱',
-  'Uruguay': '🇺🇾',
-  'Saudi Arabia': '🇸🇦',
-  'South Korea': '🇰🇷',
-  'South Africa': '🇿🇦',
-  'Colombia': '🇨🇴',
-  'Morocco': '🇲🇦',
-  'Italy': '🇮🇹',
-  'Croatia': '🇭🇷',
-  'Albania': '🇦🇱',
-  'Nigeria': '🇳🇬',
-  'Poland': '🇵🇱',
-  'Austria': '🇦🇹',
-  'Egypt': '🇪🇬',
-  'Panama': '🇵🇦',
-  'Denmark': '🇩🇰',
-  'Iran': '🇮🇷',
-  'Venezuela': '🇻🇪',
-  'Switzerland': '🇨🇭',
-  'Czech Republic': '🇨🇿',
-  'Czechia': '🇨🇿',
-  'Honduras': '🇭🇳',
-  'DR Congo': '🇨🇩',
-  'Turkey': '🇹🇷',
-  'Türkiye': '🇹🇷',
-  'Ukraine': '🇺🇦',
-  'Cuba': '🇨🇺',
-  'Hungary': '🇭🇺',
-  'Wales': '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
-  'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  'Tunisia': '🇹🇳',
-  'Ghana': '🇬🇭',
-  'Ivory Coast': '🇨🇮',
-  "Côte d'Ivoire": '🇨🇮',
-  'Mali': '🇲🇱',
-  'Algeria': '🇩🇿',
-  'Paraguay': '🇵🇾',
-  'Bolivia': '🇧🇴',
-  'Jamaica': '🇯🇲',
-  'Trinidad and Tobago': '🇹🇹',
-  'New Zealand': '🇳🇿',
-  'Qatar': '🇶🇦',
-  'Iraq': '🇮🇶',
-  'Jordan': '🇯🇴',
-  'Uzbekistan': '🇺🇿',
-  'China': '🇨🇳',
-  'Indonesia': '🇮🇩',
-  'Thailand': '🇹🇭',
-  'Philippines': '🇵🇭',
-  'Guatemala': '🇬🇹',
-  'El Salvador': '🇸🇻',
-  'Greece': '🇬🇷',
-  'Romania': '🇷🇴',
-  'Slovakia': '🇸🇰',
-  'Slovenia': '🇸🇮',
-  'Sweden': '🇸🇪',
-  'Norway': '🇳🇴',
-  'Finland': '🇫🇮',
-  'Russia': '🇷🇺',
-  'Kenya': '🇰🇪',
-  'Tanzania': '🇹🇿',
-  'Angola': '🇦🇴',
-  'Zambia': '🇿🇲',
+// ─── Flags ────────────────────────────────────────────────────────────────────
+// Maps FIFA 3-letter codes AND common team names → ISO 3166-1 alpha-2
+// Used with flagcdn.com: https://flagcdn.com/w40/{code}.png
+
+const tlaToIso2: Record<string, string> = {
+  ARG: 'ar', AUS: 'au', ALB: 'al', AUT: 'at', BEL: 'be',
+  BRA: 'br', BOL: 'bo', CAN: 'ca', CHI: 'cl', CHL: 'cl',
+  CMR: 'cm', COL: 'co', CRC: 'cr', CRO: 'hr', CUB: 'cu',
+  CZE: 'cz', DEN: 'dk', ECU: 'ec', EGY: 'eg', ENG: 'gb-eng',
+  FRA: 'fr', GER: 'de', GHA: 'gh', GRE: 'gr', HON: 'hn',
+  HUN: 'hu', IDN: 'id', IRI: 'ir', IRN: 'ir', IRQ: 'iq',
+  ITA: 'it', JAM: 'jm', JOR: 'jo', JPN: 'jp', KEN: 'ke',
+  KOR: 'kr', MAR: 'ma', MEX: 'mx', MLI: 'ml', NED: 'nl',
+  NGA: 'ng', NOR: 'no', NZL: 'nz', PAN: 'pa', PAR: 'py',
+  PER: 'pe', PHI: 'ph', POL: 'pl', POR: 'pt', QAT: 'qa',
+  ROU: 'ro', RSA: 'za', RUS: 'ru', SAU: 'sa', SCO: 'gb-sct',
+  SEN: 'sn', SRB: 'rs', SUI: 'ch', SVK: 'sk', SWE: 'se',
+  THA: 'th', TRI: 'tt', TUN: 'tn', TUR: 'tr', UKR: 'ua',
+  URU: 'uy', USA: 'us', UZB: 'uz', VEN: 've', WAL: 'gb-wls',
+  ALG: 'dz', COD: 'cd', ANG: 'ao', ZAM: 'zm', TAN: 'tz',
+  SVN: 'si', FIN: 'fi', CGO: 'cg', CMV: 'cv',
 };
 
-export function teamFlag(name: string): string {
-  return flagMap[name] ?? '🏳️';
+const nameToIso2: Record<string, string> = {
+  'Argentina': 'ar', 'Australia': 'au', 'Albania': 'al', 'Austria': 'at',
+  'Belgium': 'be', 'Brazil': 'br', 'Bolivia': 'bo', 'Canada': 'ca',
+  'Chile': 'cl', 'Cameroon': 'cm', 'Colombia': 'co', 'Costa Rica': 'cr',
+  'Croatia': 'hr', 'Cuba': 'cu', 'Czech Republic': 'cz', 'Czechia': 'cz',
+  'Denmark': 'dk', 'Ecuador': 'ec', 'Egypt': 'eg', 'England': 'gb-eng',
+  'France': 'fr', 'Germany': 'de', 'Ghana': 'gh', 'Greece': 'gr',
+  'Honduras': 'hn', 'Hungary': 'hu', 'Indonesia': 'id', 'Iran': 'ir',
+  'Iraq': 'iq', 'Italy': 'it', 'Jamaica': 'jm', 'Jordan': 'jo',
+  'Japan': 'jp', 'Kenya': 'ke', 'South Korea': 'kr', 'Morocco': 'ma',
+  'Mexico': 'mx', 'Mali': 'ml', 'Netherlands': 'nl', 'Nigeria': 'ng',
+  'Norway': 'no', 'New Zealand': 'nz', 'Panama': 'pa', 'Paraguay': 'py',
+  'Peru': 'pe', 'Philippines': 'ph', 'Poland': 'pl', 'Portugal': 'pt',
+  'Qatar': 'qa', 'Romania': 'ro', 'South Africa': 'za', 'Russia': 'ru',
+  'Saudi Arabia': 'sa', 'Scotland': 'gb-sct', 'Senegal': 'sn',
+  'Serbia': 'rs', 'Switzerland': 'ch', 'Slovakia': 'sk', 'Sweden': 'se',
+  'Thailand': 'th', 'Trinidad and Tobago': 'tt', 'Tunisia': 'tn',
+  'Turkey': 'tr', 'Türkiye': 'tr', 'Ukraine': 'ua', 'Uruguay': 'uy',
+  'United States': 'us', 'USA': 'us', 'Uzbekistan': 'uz',
+  'Venezuela': 've', 'Wales': 'gb-wls', 'Algeria': 'dz',
+  'DR Congo': 'cd', 'Angola': 'ao', 'Zambia': 'zm', 'Tanzania': 'tz',
+  'Slovenia': 'si', 'Finland': 'fi', 'Guatemala': 'gt', 'El Salvador': 'sv',
+  "Côte d'Ivoire": 'ci', 'Ivory Coast': 'ci',
+};
+
+export function flagUrl(tla: string, name: string): string {
+  const iso2 = tlaToIso2[tla] ?? nameToIso2[name];
+  if (!iso2) return '';
+  return `https://flagcdn.com/w40/${iso2}.png`;
 }
 
 export function groupLabel(group: string | null): string {
