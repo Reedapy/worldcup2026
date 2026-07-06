@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const links = [
-  { href: '/', label: 'Home', icon: '🏠' },
-  { href: '/fixtures', label: 'Fixtures', icon: '📅' },
-  { href: '/standings', label: 'Standings', icon: '📊' },
-  { href: '/bracket', label: 'Bracket', icon: '🏆' },
+  { href: '/', label: 'Home' },
+  { href: '/fixtures', label: 'Fixtures' },
+  { href: '/stats', label: 'Stats' },
+  { href: '/standings', label: 'Standings' },
+  { href: '/bracket', label: 'Bracket' },
 ];
 
 export function NavLinks() {
@@ -15,28 +16,14 @@ export function NavLinks() {
 
   return (
     <>
-      {links.map(({ href, label, icon }) => {
-        const active = pathname === href;
+      {links.map(({ href, label }) => {
+        const active = pathname === href || (href !== '/' && pathname.startsWith(href));
         return (
           <Link
             key={href}
             href={href}
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 2,
-              padding: '8px 4px',
-              textDecoration: 'none',
-              color: active ? '#c9a227' : '#64748b',
-              borderBottom: active ? '2px solid #c9a227' : '2px solid transparent',
-              transition: 'color 0.15s, border-color 0.15s',
-              fontSize: 11,
-              fontWeight: active ? 700 : 500,
-            }}
+            className={`nav-link${active ? ' nav-link--active' : ''}`}
           >
-            <span style={{ fontSize: 18 }}>{icon}</span>
             {label}
           </Link>
         );

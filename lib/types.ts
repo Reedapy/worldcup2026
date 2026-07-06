@@ -47,6 +47,88 @@ export interface Match {
   score: Score;
   venue?: string;
   matchday?: number;
+  minute?: number | null;
+  injuryTime?: number | null;
+}
+
+// ─── Player stats ─────────────────────────────────────────────────────────────
+
+export interface Player {
+  id: number;
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  nationality?: string;
+  position?: string;
+  shirtNumber?: number | null;
+}
+
+export interface ScorerEntry {
+  player: Player;
+  team: Team;
+  goals: number;
+  assists: number | null;
+  penalties: number | null;
+}
+
+export interface LineupPlayer {
+  id: number;
+  name: string;
+  position?: string;
+  shirtNumber?: number | null;
+}
+
+export interface Coach {
+  id: number;
+  name: string;
+  nationality?: string;
+}
+
+export interface TeamMatchDetail extends Team {
+  coach?: Coach;
+  formation?: string | null;
+  lineup?: LineupPlayer[];
+  bench?: LineupPlayer[];
+}
+
+export interface MatchGoal {
+  minute: number;
+  injuryTime?: number | null;
+  type: string;
+  team: { id: number; name: string };
+  scorer: Player;
+  assist?: Player | null;
+  score?: { home: number; away: number };
+}
+
+export interface MatchBooking {
+  minute: number;
+  team: { id: number; name: string };
+  player: Player;
+  card: 'YELLOW_CARD' | 'YELLOW_RED_CARD' | 'RED_CARD';
+}
+
+export interface MatchSubstitution {
+  minute: number;
+  team: { id: number; name: string };
+  playerOut: Player;
+  playerIn: Player;
+}
+
+export interface MatchDetail extends Omit<Match, 'homeTeam' | 'awayTeam'> {
+  homeTeam: TeamMatchDetail;
+  awayTeam: TeamMatchDetail;
+  goals?: MatchGoal[];
+  bookings?: MatchBooking[];
+  substitutions?: MatchSubstitution[];
+  lastUpdated?: string;
+}
+
+export interface LiveBundle {
+  matches: Match[];
+  standings: Standing[];
+  scorers: ScorerEntry[];
+  fetchedAt: string;
 }
 
 export interface StandingRow {

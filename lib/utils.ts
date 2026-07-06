@@ -43,6 +43,21 @@ export function formatTime(utcDate: string): string {
   });
 }
 
+/** Compact date for tight UI — e.g. "30 Jun" */
+export function formatShortDate(utcDate: string): string {
+  const aest = toAEST(utcDate);
+  return aest.toLocaleString('en-AU', {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
+/** Bracket card meta line — e.g. "30 Jun · 8:00 pm" */
+export function formatBracketMeta(utcDate: string): string {
+  return `${formatShortDate(utcDate)} · ${formatTime(utcDate)}`;
+}
+
 // ─── Score display ────────────────────────────────────────────────────────────
 
 export interface DisplayScore {
@@ -131,6 +146,22 @@ export function isLive(status: MatchStatus): boolean {
 export function isFinished(status: MatchStatus): boolean {
   return status === 'FINISHED';
 }
+
+export function formatMatchMinute(
+  minute: number | null | undefined,
+  injuryTime: number | null | undefined,
+  status: MatchStatus,
+): string | null {
+  if (isFinished(status)) return 'FT';
+  if (status === 'PAUSED') return 'HT';
+  if (!isLive(status)) return null;
+  if (minute == null) return 'LIVE';
+  const base = `${minute}'`;
+  return injuryTime ? `${base}+${injuryTime}` : base;
+}
+
+export const LIVE_POLL_MS = 20_000;
+export const IDLE_POLL_MS = 60_000;
 
 // ─── Flags ────────────────────────────────────────────────────────────────────
 // Maps FIFA 3-letter codes AND common team names → ISO 3166-1 alpha-2

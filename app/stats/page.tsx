@@ -1,7 +1,7 @@
 import { hasApiKey } from '@/lib/api';
-import { BracketLive } from '@/components/BracketLive';
+import StatsPageClient from './StatsPageClient';
 
-export default function BracketPage() {
+export default function StatsPage() {
   if (!hasApiKey()) {
     return (
       <div style={{ textAlign: 'center', padding: 80, color: '#94a3b8' }}>
@@ -11,5 +11,5 @@ export default function BracketPage() {
     );
   }
 
-  return <BracketLive />;
+  return <StatsPageClient />;
 }
